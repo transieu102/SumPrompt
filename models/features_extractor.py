@@ -11,7 +11,7 @@ def extract_image_features(model, preprocess, images, device = "cuda"):
         image = cv2.cvtColor(images[i], cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
         image = preprocess(image).unsqueeze(0).to(device)
-        features.append(model.encode_image(image)).cpu().detach().numpy()
+        features.append(model.encode_image(image).cpu().detach().numpy())
     return features
 
 def extract_query_features(model, query, device = "cuda"):
