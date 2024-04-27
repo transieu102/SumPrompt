@@ -1,24 +1,26 @@
-from ortools.algorithms.python import knapsack_solver
 import cv2
 def knapsack(shot_scores, shot_change_points, keep):
-        solver = knapsack_solver.KnapsackSolver(
-            knapsack_solver.SolverType.KNAPSACK_MULTIDIMENSION_BRANCH_AND_BOUND_SOLVER,
-            "KnapsackExample",)
-        
         durations = [end - start for start, end in shot_change_points]
         total_duration = shot_change_points[-1][1] + 1
         capacity = int(keep * total_duration)
-        
-        solver.init(shot_scores, durations, [capacity])
-        computed_value = solver.solve()
+        n = len(durations)
+        K = [[0 for x in range(capacity + 1)] for x in range(n + 1)] 
+        for i in range(n + 1): 
+            for w in range(capacity + 1): 
+                if i == 0 or w == 0:
+                    K[i][w] = 0 
+                elif durations[i-1] <= w: 
+                    K[i][w] = max(shot_scores[i-1] + K[i-1][w-durations[i-1]], K[i-1][w]) 
+                else: 
+                    K[i][w] = K[i-1][w]
 
-        # Extract which shots are selected
-        selected_shots = [0] * len(shot_scores)
-        selected_items = solver.best_solution_items()
-        for item in selected_items:
-            selected_shots[item] = 1
-
-        return selected_shots
+        selected = []
+        w = capacity
+        for i in range(n,0,-1):
+            if K[i][w]!= K[i-1][w]:
+                selected.insert(0,i-1)
+                w -= durations[i-1]
+        return selected 
 
 def summary_generator(input_video_path, shot_scores, shot_change_points, output_video_path, keep = 0.15):
     selected_shots = knapsack(shot_scores, shot_change_points, keep = keep)
@@ -32,7 +34,8 @@ def summary_generator(input_video_path, shot_scores, shot_change_points, output_
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
     # Iterate through the frame indices
     for shot_index, shot in enumerate(shot_change_points):
-        if selected_shots[shot_index] == 0:
+        # if selected_shots[shot_index] == 0:
+        if shot_index in selected_shots:
             continue
         for index, frame_index in enumerate(start=shot[0], stop=shot[1]+1):
             # Set the frame position
